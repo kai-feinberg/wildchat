@@ -1,0 +1,79 @@
+{
+    "extends": [
+        "next/core-web-vitals",
+        "plugin:@typescript-eslint/recommended-type-checked",
+        "plugin:@typescript-eslint/stylistic-type-checked",
+        "plugin:import/recommended",
+        "plugin:import/typescript",
+        "prettier"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+        "ecmaVersion": 2020,
+        "project": "./tsconfig.json",
+        "sourceType": "module"
+    },
+    "plugins": ["@typescript-eslint", "import"],
+    "root": true,
+    "rules": {
+        "@typescript-eslint/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
+        ],
+        "curly": "error",
+        "dot-notation": "error",
+        "eqeqeq": "error",
+        "import/order": [
+            "error",
+            {
+                "alphabetize": {
+                    "caseInsensitive": true,
+                    "order": "asc"
+                },
+                "groups": ["builtin", "external", "internal", "parent", "sibling", "index"],
+                "newlines-between": "always"
+            }
+        ],
+        "no-else-return": "error",
+        "no-empty": [
+            "error",
+            {
+                "allowEmptyCatch": true
+            }
+        ],
+        "no-extra-bind": "error",
+        "no-labels": "error",
+        "no-lone-blocks": "error",
+        "no-loop-func": "error",
+        "no-new-func": "error",
+        "no-new-object": "error",
+        "no-new-wrappers": "error",
+        "no-param-reassign": "error",
+        "no-redeclare": "error",
+        "no-template-curly-in-string": "error",
+        "no-unreachable": "error",
+        "no-useless-constructor": "error",
+        "prefer-arrow-callback": "error",
+        "prefer-exponentiation-operator": "error",
+        "prefer-template": "error",
+        "quotes": [
+            "error",
+            "double",
+            {
+                "avoidEscape": true
+            }
+        ],
+        "require-atomic-updates": "error",
+        "require-await": "error",
+        "sort-imports": [
+            "error",
+            {
+                "ignoreCase": true,
+                "ignoreDeclarationSort": true
+            }
+        ]
+    }
+}
