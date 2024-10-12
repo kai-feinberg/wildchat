@@ -13,27 +13,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <link rel="shortcut icon" href="/images/favicon.ico" />
                 <meta
                     name="description"
-                    content="Starter template showing how to use LangChain in Next.js projects. See source code and deploy your own at https://github.com/langchain-ai/langchain-nextjs-template!"
+                    content="An ai assistant to help you find any and all Northwestern University resources"
                 />
-                <meta property="og:title" content="LangChain + Next.js Template" />
-                <meta
-                    property="og:description"
-                    content="Starter template showing how to use LangChain in Next.js projects. See source code and deploy your own at https://github.com/langchain-ai/langchain-nextjs-template!"
-                />
-                <meta property="og:image" content="/images/og-image.png" />
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content="LangChain + Next.js Template" />
-                <meta
-                    name="twitter:description"
-                    content="Starter template showing how to use LangChain in Next.js projects. See source code and deploy your own at https://github.com/langchain-ai/langchain-nextjs-template!"
-                />
-                <meta name="twitter:image" content="/images/og-image.png" />
+                <meta property="og:title" content="WildChat" />
+                
             </head>
             <body className="bg-slate-300">
-                <div className="flex flex-col p-4 md:p-12">
-                    <Navbar></Navbar>
-                    {children}
-                </div>
+                <Navbar></Navbar>
+                <div className="flex flex-col p-4 md:p-12">{children}</div>
             </body>
         </html>
     );

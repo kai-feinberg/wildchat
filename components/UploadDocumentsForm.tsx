@@ -1,18 +1,21 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+
 import DEFAULT_RETRIEVAL_TEXT from "@/data/DefaultRetrievalText";
 
 export function UploadDocumentsForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [document, setDocument] = useState(DEFAULT_RETRIEVAL_TEXT);
+    const [link, setLink] = useState("");
     const ingest = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
-        const response = await fetch("/api/retrieval/ingest", {
+        const response = await fetch("/api/ingest", {
             method: "POST",
             body: JSON.stringify({
                 text: document,
+                link,
             }),
         });
         if (response.status === 200) {
@@ -28,6 +31,7 @@ export function UploadDocumentsForm() {
     return (
         <form onSubmit={ingest} className="flex w-full mb-4">
             <textarea className="grow mr-8 p-4 rounded" value={document} onChange={(e) => setDocument(e.target.value)}></textarea>
+            <input className="grow mr-8 p-4 rounded" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link to document"></input>
             <button type="submit" className="shrink-0 px-8 py-4 bg-sky-600 rounded w-28">
                 <div role="status" className={`${isLoading ? "" : "hidden"} flex justify-center`}>
                     <svg

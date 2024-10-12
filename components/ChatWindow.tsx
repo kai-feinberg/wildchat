@@ -143,8 +143,8 @@ export function ChatWindow(props: {
     }
 
     return (
-        <div className={`flex flex-col items-center p-4 md:p-8 rounded grow overflow-hidden ${messages.length > 0 ? "border" : ""}`}>
-            <h2 className={`${messages.length > 0 ? "" : "hidden"} text-2xl`}>
+        <div className={`flex flex-col items-center my-8 p-4 md:p-8 rounded-xl grow overflow-hidden ${messages.length > 0 ? "" : ""}`}>
+            <h2 className={`${messages.length > 0 ? "" : "hidden"} text-2xl text-black font-medium py-4`}>
                 {emoji} {titleText}
             </h2>
             {messages.length === 0 ? emptyStateComponent : ""}
