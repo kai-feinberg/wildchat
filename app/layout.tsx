@@ -21,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </head>
             <body className="bg-white">
                 <Navbar></Navbar>
-                <div className="flex flex-col p-4 md:p-12">{children}</div>
+                {children}
             </body>
         </html>
     );
