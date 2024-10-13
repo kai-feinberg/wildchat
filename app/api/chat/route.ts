@@ -1,7 +1,6 @@
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
 import { Document } from "@langchain/core/documents";
-// import { BytesOutputParser, StringOutputParser } from "@langchain/core/output_parsers";
-import { BytesOutputParser } from "@langchain/core/output_parsers";
+import { BytesOutputParser, StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
@@ -17,27 +16,27 @@ export const runtime = "edge";
 // };
 const combineDocumentsFn = (docs: Document[]) => JSON.stringify(docs);
 
-// const formatVercelMessages = (chatHistory: VercelChatMessage[]) => {
-//     const formattedDialogueTurns = chatHistory.map((message) => {
-//         if (message.role === "user") {
-//             return `Human: ${message.content}`;
-//         } else if (message.role === "assistant") {
-//             return `Assistant: ${message.content}`;
-//         }
-//         return `${message.role}: ${message.content}`;
-//     });
-//     return formattedDialogueTurns.join("\n");
-// };
+const formatVercelMessages = (chatHistory: VercelChatMessage[]) => {
+    const formattedDialogueTurns = chatHistory.map((message) => {
+        if (message.role === "user") {
+            return `Human: ${message.content}`;
+        } else if (message.role === "assistant") {
+            return `Assistant: ${message.content}`;
+        }
+        return `${message.role}: ${message.content}`;
+    });
+    return formattedDialogueTurns.join("\n");
+};
 
-// const CONDENSE_QUESTION_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.
+const CONDENSE_QUESTION_TEMPLATE = `Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question.
 
-// <chat_history>
-//   {chat_history}
-// </chat_history>
+<chat_history>
+  {chat_history}
+</chat_history>
 
-// Follow Up Input: {question}
-// Standalone question:`;
-// const condenseQuestionPrompt = PromptTemplate.fromTemplate(CONDENSE_QUESTION_TEMPLATE);
+Follow up: {question}
+Standalone question:`;
+const condenseQuestionPrompt = PromptTemplate.fromTemplate(CONDENSE_QUESTION_TEMPLATE);
 
 // const ANSWER_TEMPLATE = `You are an knowledgable expert about the following resources. Keep your awsnser concise and informative while pointing the user to relevant links and sections.
 
@@ -52,7 +51,7 @@ const combineDocumentsFn = (docs: Document[]) => JSON.stringify(docs);
 
 // Question: {question}
 // `;
-const ANSWER_TEMPLATE = `You are Willie the Wildcat, the knowledgable, friendly mascot of Northwestern University. You must answer students' questions about the following resources. Keep your answer concise, informative and welcoming while pointing them to relevant links and sections.
+const ANSWER_TEMPLATE = `You are Willie the Wildcat, the knowledgable, friendly mascot of Northwestern University. You must answer students' questions about the following resources. Keep your answer concise and welcoming while pointing them to relevant links and sections. Use many resources as you can in your answer. Answer in the language the user uses.
 
 Answer the question based only on the following context:
 <context>
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest) {
     try {
         const body = (await req.json()) as { messages: VercelChatMessage[] };
         const messages = body.messages ?? [];
-        // const previousMessages = messages.slice(0, -1);
+        const previousMessages = messages.slice(0, -1);
         const currentMessageContent = messages[messages.length - 1].content;
 
         const model = new ChatOpenAI({
@@ -97,7 +96,7 @@ export async function POST(req: NextRequest) {
          * You can also use the "createRetrievalChain" method with a
          * "historyAwareRetriever" to get something prebaked.
          */
-        // const standaloneQuestionChain = RunnableSequence.from([condenseQuestionPrompt, model, new StringOutputParser()]);
+        const standaloneQuestionChain = RunnableSequence.from([condenseQuestionPrompt, model, new StringOutputParser()]);
 
         let resolveWithDocuments: (value: Document[]) => void;
         const documentPromise = new Promise<Document[]>((resolve) => {
@@ -119,8 +118,8 @@ export async function POST(req: NextRequest) {
 
         const answerChain = RunnableSequence.from([
             {
-                context: RunnableSequence.from([(input: { question: string }) => input.question, retrievalChain]),
-                // chat_history: (input) => input.chat_history,
+                context: RunnableSequence.from([(input: { question: string; chat_history: string }) => input.question, retrievalChain]),
+                chat_history: (input) => input.chat_history,
                 question: (input) => input.question,
             },
             answerPrompt,
@@ -128,17 +127,17 @@ export async function POST(req: NextRequest) {
         ]);
 
         const conversationalRetrievalQAChain = RunnableSequence.from([
-            // {
-            //     question: standaloneQuestionChain,
-            //     chat_history: (input) => input.chat_history,
-            // },
+            {
+                question: standaloneQuestionChain,
+                chat_history: (input: { question: string; chat_history: string }) => input.chat_history,
+            },
             answerChain,
             new BytesOutputParser(),
         ]);
 
         const stream = await conversationalRetrievalQAChain.stream({
             question: currentMessageContent,
-            // chat_history: formatVercelMessages(previousMessages),
+            chat_history: formatVercelMessages(previousMessages),
         });
 
         const documents = await documentPromise;
@@ -155,8 +154,7 @@ export async function POST(req: NextRequest) {
 
         return new StreamingTextResponse(stream, {
             headers: {
-                // "x-message-index": (previousMessages.length + 1).toString(),
-                "x-message-index": "1",
+                "x-message-index": (previousMessages.length + 1).toString(),
                 "x-sources": serializedSources,
             },
         });

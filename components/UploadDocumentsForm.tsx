@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-
-import DEFAULT_RETRIEVAL_TEXT from "@/data/DefaultRetrievalText";
+import { type FormEvent, useState } from "react";
 
 export function UploadDocumentsForm() {
     const [isLoading, setIsLoading] = useState(false);
-    const [document, setDocument] = useState(DEFAULT_RETRIEVAL_TEXT);
+    const [document, setDocument] = useState("");
     const [link, setLink] = useState("");
     const ingest = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -21,7 +19,7 @@ export function UploadDocumentsForm() {
         if (response.status === 200) {
             setDocument("Uploaded!");
         } else {
-            const json = await response.json();
+            const json = (await response.json()) as { error?: string };
             if (json.error) {
                 setDocument(json.error);
             }
@@ -29,6 +27,7 @@ export function UploadDocumentsForm() {
         setIsLoading(false);
     };
     return (
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
         <form onSubmit={ingest} className="flex w-full mb-4">
             <textarea className="grow mr-8 p-4 rounded" value={document} onChange={(e) => setDocument(e.target.value)}></textarea>
             <input className="grow mr-8 p-4 rounded" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link to document"></input>

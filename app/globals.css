@@ -31,3 +31,14 @@ code {
 li {
     padding: 4px;
 }
+
+ul,
+ol {
+    @apply ml-6 list-outside space-y-2;
+}
+ul {
+    @apply list-disc;
+}
+ol {
+    @apply list-decimal;
+}

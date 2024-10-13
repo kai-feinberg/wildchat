@@ -1,16 +1,16 @@
 "use client";
 
-import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { Message } from "ai";
 import { useChat } from "ai/react";
-import { useRef, useState, ReactElement } from "react";
+import { SearchCheck } from "lucide-react";
+import { ReactElement, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import { toast, ToastContainer } from "react-toastify";
 
 import { ChatMessageBubble } from "@/components/ChatMessageBubble";
 import { UploadDocumentsForm } from "@/components/UploadDocumentsForm";
-import { IntermediateStep } from "./IntermediateStep";
+import { LinkedDocument } from "@/types/api";
 
 export function ChatWindow(props: {
     endpoint: string;
@@ -19,43 +19,26 @@ export function ChatWindow(props: {
     titleText?: string;
     emoji?: string;
     showIngestForm?: boolean;
-    showIntermediateStepsToggle?: boolean;
 }) {
     const messageContainerRef = useRef<HTMLDivElement | null>(null);
 
-    const { endpoint, emptyStateComponent, placeholder, titleText = "An LLM", showIngestForm, showIntermediateStepsToggle, emoji } = props;
+    const { endpoint, emptyStateComponent, placeholder, titleText = "An LLM", showIngestForm, emoji } = props;
 
-    const [showIntermediateSteps, setShowIntermediateSteps] = useState(false);
-    const [intermediateStepsLoading, setIntermediateStepsLoading] = useState(false);
     const ingestForm = showIngestForm && <UploadDocumentsForm></UploadDocumentsForm>;
-    const intemediateStepsToggle = showIntermediateStepsToggle && (
-        <div>
-            <input
-                type="checkbox"
-                id="show_intermediate_steps"
-                name="show_intermediate_steps"
-                checked={showIntermediateSteps}
-                onChange={(e) => setShowIntermediateSteps(e.target.checked)}
-            ></input>
-            <label htmlFor="show_intermediate_steps"> Show intermediate steps</label>
-        </div>
-    );
 
-    const [sourcesForMessages, setSourcesForMessages] = useState<Record<string, any>>({});
+    const [sourcesForMessages, setSourcesForMessages] = useState<Record<string, LinkedDocument[]>>({});
 
     const {
         messages,
         input,
-        setInput,
         handleInputChange,
         handleSubmit,
         isLoading: chatEndpointIsLoading,
-        setMessages,
     } = useChat({
         api: endpoint,
         onResponse(response) {
             const sourcesHeader = response.headers.get("x-sources");
-            const sources = sourcesHeader ? JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8")) : [];
+            const sources = sourcesHeader ? (JSON.parse(Buffer.from(sourcesHeader, "base64").toString("utf8")) as LinkedDocument[]) : [];
             const messageIndexHeader = response.headers.get("x-message-index");
             if (sources.length && messageIndexHeader !== null) {
                 setSourcesForMessages({ ...sourcesForMessages, [messageIndexHeader]: sources });
@@ -77,103 +60,42 @@ export function ChatWindow(props: {
         if (!messages.length) {
             await new Promise((resolve) => setTimeout(resolve, 300));
         }
-        if (chatEndpointIsLoading ?? intermediateStepsLoading) {
+        if (chatEndpointIsLoading) {
             return;
         }
-        if (!showIntermediateSteps) {
-            handleSubmit(e);
-            // Some extra work to show intermediate steps properly
-        } else {
-            setIntermediateStepsLoading(true);
-            setInput("");
-            const messagesWithUserReply = messages.concat({ id: messages.length.toString(), content: input, role: "user" });
-            setMessages(messagesWithUserReply);
-            const response = await fetch(endpoint, {
-                method: "POST",
-                body: JSON.stringify({
-                    messages: messagesWithUserReply,
-                    show_intermediate_steps: true,
-                }),
-            });
-            const json = await response.json();
-            setIntermediateStepsLoading(false);
-            if (response.status === 200) {
-                const responseMessages: Message[] = json.messages;
-                // Represent intermediate steps as system messages for display purposes
-                // TODO: Add proper support for tool messages
-                const toolCallMessages = responseMessages.filter((responseMessage: Message) => {
-                    return (responseMessage.role === "assistant" && !!responseMessage.tool_calls?.length) || responseMessage.role === "tool";
-                });
-                const intermediateStepMessages = [];
-                for (let i = 0; i < toolCallMessages.length; i += 2) {
-                    const aiMessage = toolCallMessages[i];
-                    const toolMessage = toolCallMessages[i + 1];
-                    intermediateStepMessages.push({
-                        id: (messagesWithUserReply.length + i / 2).toString(),
-                        role: "system" as const,
-                        content: JSON.stringify({
-                            action: aiMessage.tool_calls?.[0],
-                            observation: toolMessage.content,
-                        }),
-                    });
-                }
-                const newMessages = messagesWithUserReply;
-                for (const message of intermediateStepMessages) {
-                    newMessages.push(message);
-                    setMessages([...newMessages]);
-                    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000));
-                }
-                setMessages([
-                    ...newMessages,
-                    {
-                        id: newMessages.length.toString(),
-                        content: responseMessages[responseMessages.length - 1].content,
-                        role: "assistant",
-                    },
-                ]);
-            } else {
-                if (json.error) {
-                    toast(json.error, {
-                        theme: "dark",
-                    });
-                    throw new Error(json.error);
-                }
-            }
-        }
+        handleSubmit(e);
     }
 
     return (
         <div className={`flex flex-col items-center my-8 p-4 md:p-8 rounded-xl grow overflow-hidden ${messages.length > 0 ? "" : ""}`}>
+            {messages.length > 0 ? "" : <h1 className="text-3xl text-black font-bold text-center my-[-10]">Ask Willie</h1>}
             <h2 className={`${messages.length > 0 ? "" : "hidden"} text-2xl text-black font-medium py-4`}>
                 {emoji} {titleText}
             </h2>
             {messages.length === 0 ? emptyStateComponent : ""}
-            <div className="flex flex-col-reverse w-full mb-4 overflow-auto transition-[flex-grow] ease-in-out" ref={messageContainerRef}>
+            <div className="flex flex-col-reverse w-full mb-4 overflow-auto transition-[flex-grow] ease-in-out rounded-xl" ref={messageContainerRef}>
                 {messages.length > 0
                     ? [...messages].reverse().map((m, i) => {
                           const sourceKey = (messages.length - 1 - i).toString();
-                          return m.role === "system" ? (
-                              <IntermediateStep key={m.id} message={m}></IntermediateStep>
-                          ) : (
-                              <ChatMessageBubble key={m.id} message={m} aiEmoji={emoji} sources={sourcesForMessages[sourceKey]}></ChatMessageBubble>
-                          );
+                          return <ChatMessageBubble key={m.id} message={m} sources={sourcesForMessages[sourceKey]}></ChatMessageBubble>;
                       })
                     : ""}
             </div>
 
             {messages.length === 0 && ingestForm}
 
+            {/* eslint-disable-next-line @typescript-eslint/no-misused-promises */}
             <form onSubmit={sendMessage} className="flex w-full flex-col">
-                <div className="flex">{intemediateStepsToggle}</div>
                 <div className="flex w-full mt-4">
                     <input
-                        className="grow mr-8 p-4 rounded"
+                        className="grow mr-8 p-4 rounded bg-gray-200"
                         value={input}
                         placeholder={placeholder ?? "What's it like to be a pirate?"}
                         onChange={handleInputChange}
                     />
-                    <button type="submit" className="shrink-0 px-8 py-4 bg-sky-600 rounded w-28">
-                        <div role="status" className={`${chatEndpointIsLoading || intermediateStepsLoading ? "" : "hidden"} flex justify-center`}>
+
+                    <button type="submit" className="shrink-0 px-4 py-4 bg-[#4E2a84] rounded">
+                        <div role="status" className={`${chatEndpointIsLoading ? "" : "hidden"} flex justify-center`}>
                             <svg
                                 aria-hidden="true"
                                 className="w-6 h-6 text-white animate-spin dark:text-white fill-sky-800"
@@ -192,7 +114,11 @@ export function ChatWindow(props: {
                             </svg>
                             <span className="sr-only">Loading...</span>
                         </div>
-                        <span className={chatEndpointIsLoading || intermediateStepsLoading ? "hidden" : ""}>Send</span>
+                        <span className={chatEndpointIsLoading ? "hidden" : ""}>
+                            <div className="flex flex-row align-base">
+                                <SearchCheck className="mt-2 mr-2" /> <p className="font-medium">Ask</p>
+                            </div>
+                        </span>
                     </button>
                 </div>
             </form>
