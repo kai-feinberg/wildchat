@@ -15,7 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <link rel="shortcut icon" href="/favicon.ico" />
                 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
                 <meta name="apple-mobile-web-app-title" content="WildChat" />
-                <link rel="manifest" href="/site.webmanifest" />
+                <link rel="manifest" href="/manifest.json" />
                 <meta name="description" content="Chat with Willie the Wildcat for resources on campus!" />
                 <meta property="og:title" content="WildChat" />
             </head>
